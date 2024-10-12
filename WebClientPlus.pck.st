@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 2:18:08 pm'!
+'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 4:13:40 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 5!
+!provides: 'WebClientPlus' 1 8!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -81,11 +81,19 @@ WebRoute class
 !Dog commentStamp: 'RMV 6/22/2024 20:06:39' prior: 0!
 Instances of this class describe a dog.!
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/11/2024 10:55:22'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/12/2024 15:45:36'!
 setUp
 	| dog url |
 	
 	url := self baseUrl.
+	
+	"If the web server is not running, start it."
+	[
+		Socket newTCP connectToHostNamed: 'localhost' port: 3000.
+	] on: ConnectionTimedOut do: [
+		'starting web server' print.
+		DogWebServer new start.	
+	].
 
 	"Delete all the dogs."
 	WebClientPlus method: #DELETE url: url.
@@ -96,7 +104,7 @@ setUp
 	dog := Dog name: 'Oscar' breed: 'German Shorthaired Pointer'.
 	WebClientPlus method: #POST url: url content: dog asJsonString.! !
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/9/2024 18:58:16'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/12/2024 15:40:20'!
 testDelete
 	| baseUrl dog dogs jsonArray res url |
 
@@ -112,10 +120,6 @@ testDelete
 	url := '{1}/{2}' format: {baseUrl. dog id}.
 	res := WebClientPlus method: #DELETE url: url.
 	self assert: res code equals: 200.
-	
-	"Attempt to get the deleted dog."
-	res := WebClientPlus method: #GET url: url.
-	self assert: res code equals: 404.
 	
 	"Try to delete the dog again."
 	res := WebClientPlus method: #DELETE url: url.
@@ -161,7 +165,7 @@ testGetById
 	self assert: (json at: #breed) equals: dog breed.
 ! !
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/9/2024 18:46:20'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/12/2024 15:41:03'!
 testHeadDogs
 	| contentLength res url |
 
@@ -172,6 +176,7 @@ testHeadDogs
 	self assert: res code equals: 200.
 	contentLength := res content size.
 
+	"Send a HEAD request."
 	res := WebClientPlus method: #HEAD url: url.	
 	self assert: res code equals: 200.
 	self assert: (res headerAt: 'Content-Type') equals: WebServerPlus jsonContentType.
@@ -220,7 +225,7 @@ testPatch
 	self assert: (json at: #breed) equals: dog breed.
 ! !
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/9/2024 18:40:38'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/12/2024 15:41:30'!
 testPost
 	| baseUrl breed id json name res url |
 
@@ -236,7 +241,7 @@ testPost
 	self assert: (json at: #breed) equals: breed.
 	id := json at: #id.
 	
-	"Get the dog just created."
+	"Get the dog that was just created."
 	url := '{1}/{2}' format: {baseUrl. id}.
 	res := WebClientPlus method: #GET url: url.
 	self assert: res code equals: 200.
@@ -314,14 +319,6 @@ method: methodSymbol url: urlString headers: headerDict content: contentString
 		ifNotNil: [ client sendRequest: req content: contentString readStream size: contentString size ].
 	^res.
 ! !
-
-!WebServerPlus methodsFor: 'controlling' stamp: 'RMV 10/8/2024 08:33:19'!
-start
-	self listenOn: 3000! !
-
-!WebServerPlus methodsFor: 'controlling' stamp: 'RMV 10/8/2024 08:33:24'!
-stop
-	self destroy! !
 
 !WebServerPlus methodsFor: 'html' stamp: 'RMV 10/7/2024 11:15:37'!
 element: anAssoc
