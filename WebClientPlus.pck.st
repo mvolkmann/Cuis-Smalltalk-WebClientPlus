@@ -1,6 +1,7 @@
-'From Cuis7.1 [latest update: #6757] on 10 October 2024 at 8:38:14 am'!
+'From Cuis7.1 [latest update: #6757] on 12 October 2024 at 1:54:40 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 1!
+!provides: 'WebClientPlus' 1 3!
+!requires: 'WebClient' 1 37 nil!
 SystemOrganization addCategory: #WebClientPlus!
 
 
@@ -64,16 +65,6 @@ Object subclass: #WebContext
 WebContext class
 	instanceVariableNames: ''!
 
-!classDefinition: #WebHtmlStr category: #WebClientPlus!
-Object subclass: #WebHtmlStr
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'WebClientPlus'!
-!classDefinition: 'WebHtmlStr class' category: #WebClientPlus!
-WebHtmlStr class
-	instanceVariableNames: ''!
-
 !classDefinition: #WebRoute category: #WebClientPlus!
 Object subclass: #WebRoute
 	instanceVariableNames: 'handler method path pattern'
@@ -88,7 +79,7 @@ WebRoute class
 !Dog commentStamp: 'RMV 6/22/2024 20:06:39' prior: 0!
 Instances of this class describe a dog.!
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/9/2024 18:58:12'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/11/2024 10:55:22'!
 setUp
 	| dog url |
 	
@@ -820,182 +811,6 @@ route
 newRequest: aWebRequest route: aWebRoute
 	^WebContext new request: aWebRequest route: aWebRoute! !
 
-!WebHtmlStr class methodsFor: 'as yet unclassified' stamp: 'RMV 9/29/2024 11:09:03'!
-el: nameString
-	^ self el: nameString attrs: nil children: nil
-! !
-
-!WebHtmlStr class methodsFor: 'as yet unclassified' stamp: 'RMV 9/29/2024 11:08:35'!
-el: nameString attrs: attrsDictionary
-	^ self el: nameString attrs: attrsDictionary children: nil
-! !
-
-!WebHtmlStr class methodsFor: 'as yet unclassified' stamp: 'RMV 9/29/2024 11:17:21'!
-el: nameString attrs: attrsDictionary children: childArray
-	"Answer HTML string for element that is not self-closing."
-	| html |
-	html := '<', nameString.
-	
-	attrsDictionary ifNotNil: [
-		| keys |
-		keys := attrsDictionary keys sort.
-		keys do: [:key |
-			html := '{1} {2}="{3}"' format: {html. key. attrsDictionary at: key}.
-		].
-	].
-
-	html := html, '>'.
-	
-	childArray ifNotNil: [
-		childArray do: [:child |
-			html := html, child
-		]
-	].
-
-	^ html, '</', nameString, '>'.! !
-
-!WebHtmlStr class methodsFor: 'as yet unclassified' stamp: 'RMV 9/29/2024 11:08:52'!
-el: nameString children: childArray
-	^ self el: nameString attrs: nil children: childArray
-! !
-
-!WebHtmlStr class methodsFor: 'as yet unclassified' stamp: 'RMV 9/29/2024 11:14:36'!
-elc: nameString
-	^ self elc: nameString attrs: nil
-! !
-
-!WebHtmlStr class methodsFor: 'as yet unclassified' stamp: 'RMV 9/29/2024 11:16:53'!
-elc: nameString attrs: attrsDictionary
-	"Answer HTML string for a self-closing element."
-	| html |
-	
-	html := '<', nameString.
-	
-	attrsDictionary ifNotNil: [
-		| keys |
-		keys := attrsDictionary keys sort.
-		keys do: [:key |
-			html := '{1} {2}="{3}"' format: {html. key. attrsDictionary at: key}.
-		].
-	].
-	
-	^ html, '>'.
-! !
-
-!WebHtmlStr class methodsFor: 'as yet unclassified' stamp: 'RMV 9/29/2024 11:30:17'!
-initialize
-	| contentElements selfClosingElements |
-
-	contentElements := #(
-  		#a
-   		#article
-   		#aside
-   		#audio
-   		#b
-   		#body
-   		#blockquote
-   		#button
-   		#canvas
-   		#caption
-   		#cite
-   		#code
-   		#colgroup
-   		#dd
-   		#details
-   		#dialog
-   		#div
-   		#dl
-   		#dt
-   		#em
-   		#fieldset
-   		#figcaption
-   		#figure
-   		#form
-   		#h1
-   		#h2
-   		#h3
-   		#h4
-  		#h5
-   		#h6
-   		#head
-   		#header
-   		#html
-   		#i
-   		#iframe
-   		#label
-   		#li
-   		#main
-   		#map
-   		#mark
-   		#menu
-   		#nav
-   		#object
-   		#ol
-   		#optgroup
-   		#option
-   		#output
-   		#p
-   		#picture
-   		#pre
-   		#progress
-   		#q
-   		#script
-   		#section
-   		#select
-   		#slot
-   		#small
-   		#span
-   		#strong
-   		#style
-   		#sub
-   		#summary
-   		#sup
-   		#table
-   		#tbody
-   		#td
-   		#template
-   		#textarea
-   		#tfoot
-   		#th
-   		#thead
-   		#time
-   		#title
-   		#tr
-   		#u
-   		#ul
-   		#var
-   		#video
-	).
-	
-	contentElements do: [:el |
-		| source |
-		source := WebHtmlStr el: el.
-		self compile: source classified: 'dynamically added'.
-	].
-
-	selfClosingElements := #(
-     		#area
-     		#base
-     		#br
-     		#col
-     		#embed
-     		#hr
-     		#img
-     		#input
-     		#link
-     		#meta
-     		#source
-     		#track
-     		#wbr
-	).
-	
-	selfClosingElements do: [:elc |
-		| source |
-		source := WebHtmlStr elc: elc.
-		self compile: source classified: 'dynamically added'.
-	].
-! !
-
 !WebRoute methodsFor: 'accessing' stamp: 'RMV 10/9/2024 15:23:04'!
 handler
 	^handler! !
@@ -1054,4 +869,3 @@ method: methodSymbol path: pathString handler: handler
 	route pattern: (pathString copyWithRegex: '\:\w+' matchesReplacedWith: '*').
 	^route.! !
 Dog initialize!
-WebHtmlStr initialize!
