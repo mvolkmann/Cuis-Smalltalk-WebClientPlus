@@ -1,7 +1,9 @@
-'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 2:15:58 pm'!
+'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 2:18:08 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 4!
+!provides: 'WebClientPlus' 1 5!
 !requires: 'WebClient' 1 37 nil!
+!requires: 'JSON' 1 26 nil!
+!requires: 'Regex-Core' 1 6 nil!
 SystemOrganization addCategory: #WebClientPlus!
 
 
