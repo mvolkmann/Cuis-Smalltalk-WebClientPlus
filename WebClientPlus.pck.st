@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 4:13:40 pm'!
+'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 7:34:31 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 8!
+!provides: 'WebClientPlus' 1 9!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -491,7 +491,7 @@ deleteAllDogs: aWebContext
 	^ req send200Response: ''
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/9/2024 18:57:55'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 19:33:54'!
 createDog: aWebContext
  	| dog req res |
 	
@@ -505,7 +505,7 @@ createDog: aWebContext
 	
 	"Return the new dog as JSON."
 	res := WebResponse protocol: req protocol code: 201. "Created"
-	res headerAt: 'Content-Type' put: 'application/json; charset=utf-8'.
+	res headerAt: 'Content-Type' put: WebServerPlus jsonContentType.
 	^ req sendResponse: res content: (Json render: dog)
 
 ! !
@@ -527,7 +527,7 @@ deleteDog: aWebContext
 	^ req send200Response: ''
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/9/2024 13:44:33'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 19:33:11'!
 getDogAsJson: aWebContext
 	| dog id req |
 	
@@ -539,7 +539,9 @@ getDogAsJson: aWebContext
 	dog
 		ifNil: [ req send404Response ]
 		ifNotNil: [
-			req send200Response: (Json render: dog) contentType: 'application/json; charset=utf-8'
+			req
+				send200Response: (Json render: dog)
+				contentType: WebServerPlus jsonContentType
 		].	
 ! !
 
@@ -621,7 +623,7 @@ headDogs: aWebContext
 	].
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 14:15:22'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 19:34:06'!
 patchDog: aWebContext
 	| dog id jsonObject req |
 	
@@ -644,10 +646,10 @@ patchDog: aWebContext
 	dogDict at: id put: dog.
 		
 	"Return the updated dog as JSON."
-	^ req send200Response: (Json render: dog) contentType: 'application/json; charset=utf-8'
+	^ req send200Response: (Json render: dog) contentType: WebServerPlus jsonContentType
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/9/2024 18:58:07'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 19:34:14'!
 updateDog: aWebContext
 	| dog id req |
 	
@@ -668,7 +670,7 @@ updateDog: aWebContext
 	dogDict at: dog id put: dog.
 	
 	"Return the updated dog as JSON."
-	^ req send200Response: (Json render: dog) contentType: 'application/json; charset=utf-8'
+	^ req send200Response: (Json render: dog) contentType: WebServerPlus jsonContentType
 ! !
 
 !Dog methodsFor: 'initialization' stamp: 'RMV 6/12/2024 10:47:34'!
