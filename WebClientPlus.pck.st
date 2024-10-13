@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 7:49:38 pm'!
+'From Cuis7.1 [latest update: #6757] on 13 October 2024 at 12:07:58 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 12!
+!provides: 'WebClientPlus' 1 14!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -29,7 +29,7 @@ WebClientPlus class
 
 !classDefinition: #WebServerPlus category: #WebClientPlus!
 WebServer subclass: #WebServerPlus
-	instanceVariableNames: 'action dynamicRoutes methods options staticRoutes'
+	instanceVariableNames: 'action dynamicRoutes methods options staticFilePath staticRoutes'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'WebClientPlus'!
@@ -57,6 +57,16 @@ Object subclass: #Dog
 Dog class
 	instanceVariableNames: ''!
 
+!classDefinition: #MimeType category: #WebClientPlus!
+Object subclass: #MimeType
+	instanceVariableNames: ''
+	classVariableNames: 'ExtensionToMimeDict'
+	poolDictionaries: ''
+	category: 'WebClientPlus'!
+!classDefinition: 'MimeType class' category: #WebClientPlus!
+MimeType class
+	instanceVariableNames: ''!
+
 !classDefinition: #WebContext category: #WebClientPlus!
 Object subclass: #WebContext
 	instanceVariableNames: 'request route'
@@ -77,9 +87,6 @@ Object subclass: #WebRoute
 WebRoute class
 	instanceVariableNames: 'routes'!
 
-
-!Dog commentStamp: 'RMV 6/22/2024 20:06:39' prior: 0!
-Instances of this class describe a dog.!
 
 !DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/12/2024 19:49:25'!
 setUp
@@ -344,12 +351,17 @@ element: anAssoc
 		]
 ! !
 
-!WebServerPlus methodsFor: 'initialization' stamp: 'RMV 10/9/2024 15:53:19'!
+!WebServerPlus methodsFor: 'html' stamp: 'RMV 10/13/2024 12:03:09'!
+staticFilePath: filePathString
+	staticFilePath := filePathString! !
+
+!WebServerPlus methodsFor: 'initialization' stamp: 'RMV 10/13/2024 11:50:11'!
 initialize
 	super initialize.
 	
 	dynamicRoutes := OrderedCollection new.
 	options := Dictionary new.
+	staticFilePath := ''.
 	staticRoutes := Dictionary new.
 	
 	"This handles all requests."
@@ -369,7 +381,7 @@ initialize
 			ifNil: [ request send404Response ].
 		]	! !
 
-!WebServerPlus methodsFor: 'routing' stamp: 'RMV 10/9/2024 15:48:48'!
+!WebServerPlus methodsFor: 'routing' stamp: 'RMV 10/13/2024 12:07:54'!
 dispatchRequest: request url: url
 	"This overrides the method in WebServer to assume
 	only one action that handles all requests.
@@ -399,7 +411,23 @@ dispatchRequest: request url: url
 			ifEmpty: [ request send404Response ]
 	].
 
-	"Handle 405 method not allowed"
+	"If the path ends with a file extension, attempt to serve a static file."
+	url includesSubString: '.' ::
+		ifTrue: [
+			| body contentType fileEntry filePath |
+			filePath := url copyFrom: 2 to: url size. "removes leading slash"
+			staticFilePath isEmpty ifFalse: [ filePath := staticFilePath, '/', filePath ].
+			fileEntry := filePath asFileEntry.
+			[
+				body := fileEntry fileContents.
+				contentType := MimeType forFileExtension: fileEntry extension.
+				^request send200Response: body contentType: contentType.
+			] on: FileDoesNotExistException do: [
+				^request send404Response.
+			]
+		].
+		
+	"Handle 405 Method Not Allowed"
 	pathOptions includes: request method :: ifFalse: [
 		^request send405Response: pathOptions asArray.
 	].
@@ -770,6 +798,38 @@ fromJsonObject: jsonObject
 	^Dog id: newId name: (jsonObject at: #name) breed: (jsonObject at: #breed).
 ! !
 
+!MimeType class methodsFor: 'as yet unclassified' stamp: 'RMV 10/13/2024 11:47:49'!
+forFileExtension: aFileExtension
+	^ ExtensionToMimeDict at: aFileExtension ifAbsent: 'text/plain'! !
+
+!MimeType class methodsFor: 'as yet unclassified' stamp: 'RMV 10/13/2024 11:48:41'!
+initialize
+	ExtensionToMimeDict := Dictionary newFrom: {
+		'css' -> 'text/css'.
+		'gif' -> 'image/gif'.
+		'gz' -> 'application/gz'.
+		'html' -> 'text/html'.
+		'jpeg' -> 'image/jpeg'.
+		'jpg' -> 'image/jpeg'.
+		'js' -> 'text/javascript'.
+		'json' -> 'application/json'.
+		'mp4' -> 'video/mp4'.
+		'ogg' -> 'audio/ogg'.
+		'ogv' -> 'video/ogg'.
+		'pdf' -> 'application/pdf'.
+		'png' -> 'image/png'.
+		'svg' -> 'image/svg+xml'.
+		'ttf' -> 'font/ttf'.
+		'txt' -> 'text/plain'.
+		'wav' -> 'audio/wav'.
+		'webm' -> 'video/webm'.
+		'webp' -> 'image/webp'.
+		'woff' -> 'font/woff'.
+		'xml' -> 'application/xml'.
+		'zip' -> 'application/zip'
+	}
+	! !
+
 !WebContext methodsFor: 'private' stamp: 'RMV 9/26/2024 09:22:59'!
 request: aWebRequest route: aWebRoute
 	request := aWebRequest.
@@ -876,3 +936,4 @@ method: methodSymbol path: pathString handler: handler
 logAs: aString
 	('{1} = {2}' format: {aString. self}) print! !
 Dog initialize!
+MimeType initialize!
