@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 7:43:59 pm'!
+'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 7:49:38 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 11!
+!provides: 'WebClientPlus' 1 12!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -81,18 +81,19 @@ WebRoute class
 !Dog commentStamp: 'RMV 6/22/2024 20:06:39' prior: 0!
 Instances of this class describe a dog.!
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/12/2024 15:45:36'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/12/2024 19:49:25'!
 setUp
-	| dog url |
+	| dog port url |
 	
 	url := self baseUrl.
 	
 	"If the web server is not running, start it."
+	port := 3000.
 	[
-		Socket newTCP connectToHostNamed: 'localhost' port: 3000.
+		Socket newTCP connectToHostNamed: 'localhost' port: port.
 	] on: ConnectionTimedOut do: [
 		'starting web server' print.
-		DogWebServer new start.	
+		DogWebServer new listenOn: port.	
 	].
 
 	"Delete all the dogs."
