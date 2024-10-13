@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 7:34:31 pm'!
+'From Cuis7.1 [latest update: #6770] on 12 October 2024 at 7:43:59 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 9!
+!provides: 'WebClientPlus' 1 11!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -545,13 +545,13 @@ getDogAsJson: aWebContext
 		].	
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 14:05:02'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 19:42:25'!
 getDogs: aWebContext	
 	| accept queryParams req |
 	
 	"This just demonstrates that we can get query parameters."
 	queryParams := aWebContext queryParameters.
-	"queryParams logAs: 'queryParams'."
+	queryParams logAs: 'queryParams'.
 	
 	req := aWebContext request.
 	accept := req headerAt: 'Accept'.
@@ -870,4 +870,8 @@ method: methodSymbol path: pathString handler: handler
 	route handler: handler.
 	route pattern: (pathString copyWithRegex: '\:\w+' matchesReplacedWith: '*').
 	^route.! !
+
+!Object methodsFor: '*WebClientPlus' stamp: 'RMV 10/12/2024 19:41:18'!
+logAs: aString
+	('{1} = {2}' format: {aString. self}) print! !
 Dog initialize!
