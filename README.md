@@ -50,7 +50,7 @@ initialize
     self method: #GET path: '/' handler: #index:.
 ```
 
-The `#index:` method below is used by the `GET /` routte.
+The `#index:` method below is used by the `GET /` route.
 
 ```smalltalk
 index: aWebContext
