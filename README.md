@@ -41,7 +41,8 @@ initialize
     self staticFilePath: 'public'.	
 	
     self method: #GET path: '/version' handler: [ :context |
-        context text: (SystemVersion current versionString)    ].
+        context text: (SystemVersion current versionString)
+    ].
 	
     self method: #GET path: '/' handler: [ :context |
         | html |		
