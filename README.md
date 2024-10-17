@@ -23,13 +23,12 @@ WebServerPlus subclass: #HtmxServer
 Static files (only `demo.css` in this example) are served from the `public` directory
 which is a subdirectory of the `Cuis-Smalltalk-Dev-UserFiles` directory.
 
-Handlers for routes such as `GET /version`
-can be specified with a block or a method selector.
+Handlers for routes can be specified with a block or a method selector.
 
 The route for `GET /version` uses a block, which is ideal when the implementation is small.
 The block returns text which is the version of Cuis that is running.
 
-The route for `GET /` uses a method selector (`#index:`).
+The route for `GET /` uses the method selector `#index:`.
 That method returns HTML which is created by the `WebContext` class method `html:`.
 That takes an array whose first item is an HTML element name.
 The remaining array items can be `Association` objects to specify HTML attributes
