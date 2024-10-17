@@ -20,47 +20,57 @@ WebServerPlus subclass: #HtmxServer
     category: 'WebClientPlus'
 ```
 
-This simple example has only one instance method, `initialize`, which is shown below.
-
 Static files (only `demo.css` in this example) are served from the `public` directory
 which is a subdirectory of the `Cuis-Smalltalk-Dev-UserFiles` directory.
 
-Handlers for routes such as "GET /version" can be specified with
-a block or a method selector. In this example, I only use blocks for route handlers.
+Handlers for routes such as "GET /version"
+can be specified with a block or a method selector.
 
-The route for "GET /version" returns text which is the version of Cuis that is running.
+The route for "GET /version" uses a block, which is ideal when the implementation is small.
+The block returns text which is the version of Cuis that is running.
 
-The route for "GET /" returns HTML which is created by the `WebContext` class method `html:`.
+The route for "GET /" uses a method selector (`#index:`).
+That method returns HTML which is created by the `WebContext` class method `html:`.
 That takes an array whose first item is an HTML element name.
 The remaining array items can be `Association` objects to specify HTML attributes
 or other objects to specify HTML element contents.
 
+The `initialize` method below configures the directory from which static files are served,
+and it configures the supported routes.
+
 ```smalltalk
-initialize		
+initialize
     super initialize.
-    self staticFilePath: 'public'.	
-	
+    self staticFilePath: 'public'.    
+    
     self method: #GET path: '/version' handler: [ :context |
         context text: (SystemVersion current versionString)
     ].
-	
-    self method: #GET path: '/' handler: [ :context |
-        | html |		
-        html := WebContext html: {
-            #html. #lang->#en.
-                {#head.
-                    {#title. 'My htmx Demo'}.
-                    {#link. #rel->#stylesheet. #href->'demo.css'}.
-                    {#script. #src->'https://unpkg.com/htmx.org@2.0.3'}
-                }.
-                {#body.
-                    {#h1. 'My htmx Demo'}.
-                    {#button. 'hx-get'->'/version'. 'hx-target'->'#version'. 'Get Version'}.
-                    {#div. #id->'version'}
-                }
-        }.		
-        context html: html.
-    ].
+    
+    self method: #GET path: '/' handler: #index:.
+```
+
+The `#index:` method below is used by the `GET /` routte.
+
+```smalltalk
+index: aWebContext
+    | html |
+        
+    html := WebContext html: {
+        #html. #lang->#en.
+            {#head.
+                {#title. 'My htmx Demo'}.
+                {#link. #rel->#stylesheet. #href->'demo.css'}.
+                {#script. #src->'https://unpkg.com/htmx.org@2.0.3'}
+            }.
+            {#body.
+                {#h1. 'My htmx Demo'}.
+                {#button. 'hx-get'->'/version'. 'hx-target'->'#version'. 'Get Version'}.
+                {#div. #id->'version'}
+            }
+    }.
+        
+    aWebContext html: html.
 ```
 
 After cloning this repository, copy the `public` directory

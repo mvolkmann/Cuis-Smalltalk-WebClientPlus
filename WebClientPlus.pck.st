@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6771] on 17 October 2024 at 1:14:08 pm'!
+'From Cuis7.1 [latest update: #6771] on 17 October 2024 at 4:29:07 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 29!
+!provides: 'WebClientPlus' 1 30!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -676,7 +676,27 @@ updateDog: aWebContext
 	"Return the updated dog as JSON."
 	^ aWebContext json: (Json render: dog).! !
 
-!HtmxServer methodsFor: 'initialization' stamp: 'RMV 10/17/2024 11:04:05'!
+!HtmxServer methodsFor: 'initialization' stamp: 'RMV 10/17/2024 16:20:05'!
+index: aWebContext
+	| html |
+		
+	html := WebContext html: {
+		#html. #lang->#en.
+			{#head.
+				{#title. 'My htmx Demo'}.
+				{#link. #rel->#stylesheet. #href->'demo.css'}.
+				{#script. #src->'https://unpkg.com/htmx.org@2.0.3'}
+			}.
+			{#body.
+				{#h1. 'My htmx Demo'}.
+				{#button. 'hx-get'->'/version'. 'hx-target'->'#version'. 'Get Version'}.
+				{#div. #id->'version'}
+			}
+	}.
+		
+	aWebContext html: html.! !
+
+!HtmxServer methodsFor: 'initialization' stamp: 'RMV 10/17/2024 16:21:41'!
 initialize		
 	super initialize.
 	self staticFilePath: 'public'.	
@@ -685,25 +705,7 @@ initialize
 		context text: (SystemVersion current versionString)
 	].
 	
-	self method: #GET path: '/' handler: [ :context |
-		| html |
-		
-		html := WebContext html: {
-			#html. #lang->#en.
-				{#head.
-					{#title. 'My htmx Demo'}.
-					{#link. #rel->#stylesheet. #href->'demo.css'}.
-					{#script. #src->'https://unpkg.com/htmx.org@2.0.3'}
-				}.
-				{#body.
-					{#h1. 'My htmx Demo'}.
-					{#button. 'hx-get'->'/version'. 'hx-target'->'#version'. 'Get Version'}.
-					{#div. #id->'version'}
-				}
-		}.
-		
-		context html: html.
-	].! !
+	self method: #GET path: '/' handler: #index:.! !
 
 !Dog methodsFor: 'initialization' stamp: 'RMV 6/12/2024 10:47:34'!
 initialize
