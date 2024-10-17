@@ -62,7 +62,9 @@ initialize
     ].
 ```
 
-After cloning this repository, evaluate the following lines in a Workspace
+After cloning this repository, copy the `public` directory
+to your `Cuis-Smalltalk-Dev-UserFiles` directory.
+Then evaluate the following lines in a Workspace
 to start the web server defined above.
 
 ```smalltalk
