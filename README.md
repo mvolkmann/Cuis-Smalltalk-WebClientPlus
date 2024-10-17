@@ -75,3 +75,5 @@ Then browse localhost:3000.
 When the "Get Version" button is clicked, a request is sent to the server
 to get the version of Cuis Smalltalk that is running.
 The text that is returned is placed inside the element with the id "version".
+
+![Screenshot](https://mvolkmann.github.io/blog/assets/Cuis-Smalltalk-WebClientPlus-demo.png)
