@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6771] on 17 October 2024 at 11:06:30 am'!
+'From Cuis7.1 [latest update: #6771] on 17 October 2024 at 1:14:08 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 23!
+!provides: 'WebClientPlus' 1 29!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -346,29 +346,6 @@ staticFilePath
 staticFilePath: filePathString
 	staticFilePath := filePathString! !
 
-!WebServerPlus methodsFor: 'html' stamp: 'RMV 10/7/2024 11:15:37'!
-element: anAssoc
-	"This returns an HTML string.
-	The key in the Association must be a kind of String (such as a Symbol).
-	The value in the Association can be a primitive value or
-	an Array of Associations that represent nested elements."
-	
-	| content inner tag template |
-	
-	tag := anAssoc key.
-	content := anAssoc value.
-	"TODO: Add support for attributes."
-	template := '<{1}>{2}</{1}>'.
-	(content isKindOf: String)
-		ifTrue: [^​ template format: { tag. content } ]
-		ifFalse: [
-			"Maybe this should raise an exception if (content isKindOf: SequenceableCollection) is false."
-			inner := ''.
-			content do: [ :item | inner := inner, (self element: item) ].
-			^ template format: { tag. inner }
-		]
-! !
-
 !WebServerPlus methodsFor: 'initialization' stamp: 'RMV 10/13/2024 11:50:11'!
 initialize
 	super initialize.
@@ -492,11 +469,12 @@ routeForMethod: methodSymbol path: pathString
 jsonContentType
 	^ 'application/json; charset=utf-8'! !
 
-!DogWebServer methodsFor: 'initialization' stamp: 'RMV 10/9/2024 18:58:02'!
+!DogWebServer methodsFor: 'initialization' stamp: 'RMV 10/17/2024 12:06:34'!
 initialize
 	| dog1 dog2 |
 		
 	super initialize.
+	self staticFilePath: 'public'.
 	
 	"Create some initial dogs."
 	dog1 := Dog name: 'Comet' breed: 'Whippet'.
@@ -521,92 +499,75 @@ initialize
 	self method: #DELETE path: '/dog/:id' handler: #deleteDog:.
 	self method: #DELETE path: '/dog' handler: #deleteAllDogs:.! !
 
-!DogWebServer methodsFor: 'private' stamp: 'RMV 10/8/2024 20:34:27'!
+!DogWebServer methodsFor: 'private' stamp: 'RMV 10/17/2024 12:45:06'!
 deleteAllDogs: aWebContext
-	"This should only be used by the setUp method in DogWebServerTests."
-	| req |
-	
-	req := aWebContext request.
+	"This should only be used by the setUp method in DogWebServerTests."	
 
 	dogDict := Dictionary new.
 
 	"Return an empty response."
-	^ req send200Response: ''
+	^ aWebContext text: ''
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 19:33:54'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 13:12:43'!
 createDog: aWebContext
- 	| dog req res |
-	
-	req := aWebContext request.
+ 	| dog |
 	
 	"Get Dog object from request body. An id will be assigned."
-	dog := Dog fromJson: req stream.
+	dog := Dog fromJson: aWebContext request stream.
 	
 	"Save the new dog."
 	dogDict at: dog id put: dog.
 	
 	"Return the new dog as JSON."
-	res := WebResponse protocol: req protocol code: 201. "Created"
-	res headerAt: 'Content-Type' put: WebServerPlus jsonContentType.
-	^ req sendResponse: res content: (Json render: dog)
+	^ aWebContext json: (Json render: dog) status: 201. "Created"
 
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 9/26/2024 20:18:01'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 12:54:27'!
 deleteDog: aWebContext
 	| id req |
 	
 	req := aWebContext request.
 	id := aWebContext pathParameter: #id.
-	id := [id asNumber] on: Error do: [ :e | ^ req send400Response: e messageText].
+	id := [id asNumber] on: Error do: [ :e | ^ aWebContext clientError: e messageText ].
 	
 	"Delete the dog, verifying that a dog with the given id exists."
-	dogDict removeKey: id ifAbsent: [
-		^ req send404Response.
-	].
+	dogDict removeKey: id ifAbsent: [ ^ aWebContext notFound ].
 
 	"Return an empty response."
-	^ req send200Response: ''
+	^ aWebContext text: ''
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 19:33:11'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 12:55:21'!
 getDogAsJson: aWebContext
-	| dog id req |
+	| dog id |
 	
-	req := aWebContext request.
 	id := aWebContext pathParameter: #id.
-	id := [id asNumber] on: Error do: [ :e | ^ req send400Response: e messageText].
+	id := [id asNumber] on: Error do: [ :e | ^ aWebContext clientError: e messageText ].
 	
 	dog := dogDict at: id ifAbsent: nil.
 	dog
-		ifNil: [ req send404Response ]
-		ifNotNil: [
-			req
-				send200Response: (Json render: dog)
-				contentType: WebServerPlus jsonContentType
-		].	
-! !
+		ifNil: [ aWebContext notFound ]
+		ifNotNil: [ aWebContext json: (Json render: dog) ]! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 19:42:25'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 12:59:49'!
 getDogs: aWebContext	
-	| accept queryParams req |
+	| queryParams |
 	
 	"This just demonstrates that we can get query parameters."
 	queryParams := aWebContext queryParameters.
 	queryParams logAs: 'queryParams'.
 	
-	req := aWebContext request.
-	accept := req headerAt: 'Accept'.
 	"Only return HTML if requested in the Accept header.
 	Otherwise default to returning JSON."
-	accept includesSubString: 'text/html' ::
-		ifTrue: [^self getDogsAsHtml: req]
-		ifFalse: [^self getDogsAsJson: req]! !
+	aWebContext requestHeader: 'Accept' :: includesSubString: 'text/html' ::
+		ifTrue: [^self getDogsAsHtml: aWebContext]
+		ifFalse: [^self getDogsAsJson: aWebContext]! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 9/26/2024 20:08:43'!
-getDogsAsHtml: aRequest
-	| css html tableRows |
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 12:42:17'!
+getDogsAsHtml: aWebContext
+	| css dogs html tableRows |
 	
 	css := '
 		body { font-family: sans-serif }
@@ -620,32 +581,34 @@ getDogsAsHtml: aRequest
 		}
 	'.
 	
-	tableRows := OrderedCollection new.
-	tableRows add: #tr -> { #th -> 'Name'. #th -> 'Breed' }.
-	dogDict do: [ :dog | tableRows add: (#tr -> { #td -> dog name. #td -> dog breed }) ].
+	"Create array of dogs sorted on their names."
+	dogs := dogDict values sort: [:a :b | a name < b name].
 	
-	html := self element: (#html -> {
-		#head -> {
-			#title -> 'My Dogs'.
-			#style -> css
-		}.
-		#body -> {
-			#h1 -> 'My Dogs'.
-			#table -> tableRows
-		}
-	}).
+	"Create array of arrays that describe tables rows for the dogs."
+	tableRows := dogs collect: [ :dog |
+		{ #tr. { #td. dog name}. { #td. dog breed } }.
+	].
+
+	html := WebContext html: {
+		#html.
+			{ #head.
+				{#title. 'My Dogs'}.
+				{ #style. css }
+			}.
+			{ #body.
+				{ #h1. 'My Dogs' }.
+				{ #table.
+					{ #tr. { #th. 'Name' }. { #th. 'Breed' } }
+				}, tableRows
+			}
+	}.
 		
-	aRequest send200Response: html contentType: 'text/html'
+	aWebContext html: html.
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/9/2024 18:36:37'!
-getDogsAsJson: aRequest
-	| json |
-		
-	"Create a JSON array from the dog Dictionary."
-	json := Json render: dogDict asArray.
-	
-	aRequest send200Response: json contentType: WebServerPlus jsonContentType.
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 12:05:58'!
+getDogsAsJson: aWebContext
+	aWebContext json: (Json render: dogDict asArray)
 	
 ! !
 
@@ -666,19 +629,18 @@ headDogs: aWebContext
 	].
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 19:34:06'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 13:05:12'!
 patchDog: aWebContext
-	| dog id jsonObject req |
+	| dog id jsonObject |
 	
-	req := aWebContext request.
 	id := aWebContext pathParameter: #id.
-	id := [id asNumber] on: Error do: [ :e | ^ req send400Response: e messageText].
+	id := [id asNumber] on: Error do: [ :e | ^ aWebContext clientError: e messageText ].
 
 	"Verify that a dog with the given id exists."
-	dog := dogDict at: id ifAbsent: [^ req send404Response].
+	dog := dogDict at: id ifAbsent: [ ^ aWebContext notFound ].
 
 	"Get JSON from request body."
-	jsonObject := Json readFrom: req stream.
+	jsonObject := Json readFrom: aWebContext request stream.
 
 	"Patch the dog object."
 	jsonObject associationsDo: [:assoc |
@@ -689,22 +651,21 @@ patchDog: aWebContext
 	dogDict at: id put: dog.
 		
 	"Return the updated dog as JSON."
-	^ req send200Response: (Json render: dog) contentType: WebServerPlus jsonContentType
+	^ aWebContext json: (Json render: dog).
 ! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/12/2024 19:34:14'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 13:04:57'!
 updateDog: aWebContext
-	| dog id req |
+	| dog id |
 	
-	req := aWebContext request.
 	id := aWebContext pathParameter: #id.
-	id := [id asNumber] on: Error do: [ :e | ^ req send400Response: e messageText].
+	id := [id asNumber] on: Error do: [ :e | ^ aWebContext clientError: e messageText ].
 
 	"Verify that a dog with the given id exists."
-	dogDict at: id ifAbsent: [^ req send404Response].
+	dogDict at: id ifAbsent: [^ aWebContext notFound ].
 
 	"Get Dog object from request body."
-	dog := Dog fromJson: req stream.
+	dog := Dog fromJson: aWebContext request stream.
 	
 	"Update its id to match id parameter."
 	dog id: id.
@@ -713,8 +674,7 @@ updateDog: aWebContext
 	dogDict at: dog id put: dog.
 	
 	"Return the updated dog as JSON."
-	^ req send200Response: (Json render: dog) contentType: WebServerPlus jsonContentType
-! !
+	^ aWebContext json: (Json render: dog).! !
 
 !HtmxServer methodsFor: 'initialization' stamp: 'RMV 10/17/2024 11:04:05'!
 initialize		
@@ -878,6 +838,11 @@ request: aWebRequest route: aWebRoute
 	request := aWebRequest.
 	route := aWebRoute.! !
 
+!WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 12:51:51'!
+clientError: aString
+	self request send400Response: aString
+! !
+
 !WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 10:27:22'!
 html: aString
 	self request send200Response: aString contentType: 'text/html'
@@ -890,6 +855,21 @@ json: aString
 
 ! !
 
+!WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 13:11:26'!
+json: aString status: anHttpStatusCode
+	| req res |
+	
+	req := self request.
+	res := WebResponse protocol: req protocol code: anHttpStatusCode.
+	res headerAt: 'Content-Type' put: 'application/json'.
+	req sendResponse: res content: aString
+! !
+
+!WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 12:49:55'!
+notFound
+	self request send404Response
+! !
+
 !WebContext methodsFor: 'accessing' stamp: 'RMV 9/29/2024 10:15:57'!
 pathParameter: aParameter
 	| index tokens |
@@ -898,10 +878,11 @@ pathParameter: aParameter
 	tokens := request rawUrl findTokens: $/.
 	^tokens at: index.! !
 
-!WebContext methodsFor: 'accessing' stamp: 'RMV 9/29/2024 10:08:37'!
+!WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 12:58:38'!
 queryParameters
 	"Answer a Dictionary containing all the query parameters."
 	| dict index url |
+
 	dict := Dictionary new.
 	url := request rawUrl.
 	index := url findString: '?'.
@@ -921,9 +902,20 @@ queryParameters
 request
 	^request! !
 
+!WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 12:59:04'!
+requestHeader: aString
+	"Answer the value of a given request header."
+	^ self request headerAt: aString
+! !
+
 !WebContext methodsFor: 'accessing' stamp: 'RMV 9/26/2024 09:23:28'!
 route
 	^route! !
+
+!WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 12:51:58'!
+serverError: aString
+	self request send500Response: aString
+! !
 
 !WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 10:26:30'!
 text: aString

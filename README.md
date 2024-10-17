@@ -80,3 +80,6 @@ to get the version of Cuis Smalltalk that is running.
 The text that is returned is placed inside the element with the id "version".
 
 ![Screenshot](https://mvolkmann.github.io/blog/assets/Cuis-Smalltalk-WebClientPlus-demo.png)
+
+For a non-trival example, see the `DogWebServer` class which implements endpoints
+for all the CRUD operations for managing a collection of dog descriptions.
