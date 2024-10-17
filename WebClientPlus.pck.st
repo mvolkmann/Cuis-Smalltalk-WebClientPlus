@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6757] on 14 October 2024 at 8:30:23 am'!
+'From Cuis7.1 [latest update: #6771] on 17 October 2024 at 10:50:10 am'!
 'Description '!
-!provides: 'WebClientPlus' 1 20!
+!provides: 'WebClientPlus' 1 22!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -15,16 +15,6 @@ TestCase subclass: #DogWebServerTests
 	category: 'WebClientPlus'!
 !classDefinition: 'DogWebServerTests class' category: #WebClientPlus!
 DogWebServerTests class
-	instanceVariableNames: ''!
-
-!classDefinition: #HTMLTests category: #WebClientPlus!
-TestCase subclass: #HTMLTests
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'WebClientPlus'!
-!classDefinition: 'HTMLTests class' category: #WebClientPlus!
-HTMLTests class
 	instanceVariableNames: ''!
 
 !classDefinition: #WebClientPlus category: #WebClientPlus!
@@ -57,6 +47,16 @@ WebServerPlus subclass: #DogWebServer
 DogWebServer class
 	instanceVariableNames: ''!
 
+!classDefinition: #HtmxServer category: #WebClientPlus!
+WebServerPlus subclass: #HtmxServer
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'WebClientPlus'!
+!classDefinition: 'HtmxServer class' category: #WebClientPlus!
+HtmxServer class
+	instanceVariableNames: ''!
+
 !classDefinition: #Dog category: #WebClientPlus!
 Object subclass: #Dog
 	instanceVariableNames: 'breed id name'
@@ -65,16 +65,6 @@ Object subclass: #Dog
 	category: 'WebClientPlus'!
 !classDefinition: 'Dog class' category: #WebClientPlus!
 Dog class
-	instanceVariableNames: ''!
-
-!classDefinition: #HTML category: #WebClientPlus!
-Object subclass: #HTML
-	instanceVariableNames: ''
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'WebClientPlus'!
-!classDefinition: 'HTML class' category: #WebClientPlus!
-HTML class
 	instanceVariableNames: ''!
 
 !classDefinition: #MimeType category: #WebClientPlus!
@@ -312,50 +302,6 @@ testPut
 !DogWebServerTests methodsFor: 'accessing' stamp: 'RMV 10/9/2024 18:38:31'!
 baseUrl
 	^ 'http://localhost:3000/dog'! !
-
-!HTMLTests methodsFor: 'as yet unclassified' stamp: 'RMV 10/14/2024 08:30:14'!
-testElMethods
-	| attrs content name |
-	
-	name := 'demo'.
-	attrs := Dictionary newFrom: {'a1' -> 1. 'a2' -> 2}.
-	content := { HTML el: 'c1' content: 'Hello'. HTML el: 'c2' content: 'World!!' }.
-
-	self assert: (HTML elc: name) equals: '<demo>'.
-	self assert: (HTML elc: name attrs: attrs) equals: '<demo a1="1" a2="2">'.
-	self assert: (HTML el: name) equals: '<demo></demo>'.
-	self assert: (HTML el: name attrs: attrs) equals: '<demo a1="1" a2="2"></demo>'.
-	self assert: (HTML el: name content: 'content') equals: '<demo>content</demo>'.
-	self assert: (HTML el: name content: content) equals: '<demo><c1>Hello</c1><c2>World!!</c2></demo>'.
-	self assert: (HTML el: name attrs: attrs content: 'content') equals: '<demo a1="1" a2="2">content</demo>'.
-	self assert: (HTML el: name attrs: attrs content: content)
-		equals: '<demo a1="1" a2="2"><c1>Hello</c1><c2>World!!</c2></demo>'.
-	self should: [ HTML el: name content: 7 ] raise: Error.! !
-
-!HTMLTests methodsFor: 'as yet unclassified' stamp: 'RMV 10/14/2024 08:18:26'!
-testGeneratedMethods
-	| aAttrs content imgAttrs text ulAttrs |
-	
-	"Self-closing element with no attributes"
-	self assert: (HTML br) equals: '<br>'.
-
-	"Self-closing element with attributes"
-	imgAttrs := Dictionary newFrom: {'src' -> 'dog.png'. 'class' -> 'petImage'}.
-	self assert: (HTML imgAttrs: imgAttrs) equals: '<img class="petImage" src="dog.png">'.
-	
-	"Regular element with text content"
-	text := 'Dog'.
-	self assert: (HTML pContent: text) equals: '<p>Dog</p>'.
-	
-	"Regular element with attributes and text content"
-	aAttrs := Dictionary newFrom: {'href' -> 'dog.html'. 'target' -> '_blank'}.
-	self assert: (HTML aAttrs: aAttrs content: text) equals: '<a href="dog.html" target="_blank">Dog</a>'.
-	
-	"Regular element with attributes and child elements"
-	ulAttrs := Dictionary newFrom: {'class' -> 'special'}.
-	content := { HTML liContent: 'first'. HTML liContent: 'second' }.
-	self assert: (HTML ulAttrs: ulAttrs content: content) equals: '<ul class="special"><li>first</li><li>second</li></ul>'.
-! !
 
 !WebClientPlus class methodsFor: 'as yet unclassified' stamp: 'RMV 10/8/2024 18:29:51'!
 method: methodSymbol url: urlString
@@ -770,6 +716,35 @@ updateDog: aWebContext
 	^ req send200Response: (Json render: dog) contentType: WebServerPlus jsonContentType
 ! !
 
+!HtmxServer methodsFor: 'initialization' stamp: 'RMV 10/17/2024 10:28:33'!
+initialize		
+	super initialize.
+	self staticFilePath: 'public'.	
+	
+	self method: #GET path: '/version' handler: [ :context |
+		context text: (SystemVersion current versionString)
+	].
+	
+	self method: #GET path: '/' handler: [ :context |
+		| html |
+		
+		html := WebContext html: {
+			#html. #lang->#en.
+			{#head.
+				{#title. 'My htmx Demo'}.
+				{#link. #rel->#stylesheet. #href->'demo.css'}.
+				{#script. #src->'https://unpkg.com/htmx.org@2.0.3'}
+			}.
+			{#body.
+				{#h1. 'My htmx Demo'}.
+				{#button. 'hx-get'->'/version'. 'hx-target'->'#version'. 'Get Version'}.
+				{#div. #id->'version'}
+			}
+		}.
+		
+		context html: html.
+	].! !
+
 !Dog methodsFor: 'initialization' stamp: 'RMV 6/12/2024 10:47:34'!
 initialize
 	super initialize.
@@ -866,927 +841,6 @@ fromJsonObject: jsonObject
 	^Dog id: newId name: (jsonObject at: #name) breed: (jsonObject at: #breed).
 ! !
 
-!HTML class methodsFor: 'initialization' stamp: 'RMV 10/14/2024 08:13:28'!
-initialize
-	| contentElements newLine selfClosingElements tab |
-	
-	newLine := Character newLineCharacter asString.
-	tab := Character tab asString.
-
-	contentElements := #(
-  		#a
-   		#article
-   		#aside
-   		#audio
-   		#b
-   		#body
-   		#blockquote
-   		#button
-   		#canvas
-   		#caption
-   		#cite
-   		#code
-   		#colgroup
-   		#dd
-   		#details
-   		#dialog
-   		#div
-   		#dl
-   		#dt
-   		#em
-   		#fieldset
-   		#figcaption
-   		#figure
-   		#form
-   		#h1
-   		#h2
-   		#h3
-   		#h4
-  		#h5
-   		#h6
-   		#head
-   		#header
-   		#html
-   		#i
-   		#iframe
-   		#label
-   		#li
-   		#main
-   		#map
-   		#mark
-   		#menu
-   		#nav
-   		#object
-   		#ol
-   		#optgroup
-   		#option
-   		#output
-   		#p
-   		#picture
-   		#pre
-   		#progress
-   		#q
-   		#script
-   		#section
-   		#select
-   		#slot
-   		#small
-   		#span
-   		#strong
-   		#style
-   		#sub
-   		#summary
-   		#sup
-   		#table
-   		#tbody
-   		#td
-   		#template
-   		#textarea
-   		#tfoot
-   		#th
-   		#thead
-   		#time
-   		#title
-   		#tr
-   		#u
-   		#ul
-   		#var
-   		#video
-	).
-	
-	contentElements do: [:el |
-		| source |
-		
-		"Generate a method that takes a content Array."
-		source := 	'{1}Content: content{2}{3}^HTML el: ''{1}'' content: content' format: {el. newLine. tab }.
-		self class compile: source classified: 'dynamically added'.
-		
-		"Generate a method that takes an attributes Dictionary and a content Array."
-		source := 	'{1}Attrs: attrs content: content{2}{3}^HTML el: ''{1}'' attrs: attrs content: content' format: {el. newLine. tab}.
-		self class compile: source classified: 'dynamically added'.
-	].
-
-	selfClosingElements := #(
-     		#area
-     		#base
-     		#br
-     		#col
-     		#embed
-     		#hr
-     		#img
-     		#input
-     		#link
-     		#meta
-     		#source
-     		#track
-     		#wbr
-	).
-	
-	selfClosingElements do: [:elc |
-		| source |
-		
-		"Generate a method that takes no arguments."
-		source := 	'{1}{2}{3}^HTML elc: ''{1}''' format: {elc. newLine. tab}.
-		self class compile: source classified: 'dynamically added'.
-		
-		"Generate a method that takes an attributes Dictionary."
-		source := 	'{1}Attrs: attrs{2}{3}^HTML elc: ''{1}'' attrs: attrs' format: {elc. newLine. tab}.
-		self class compile: source classified: 'dynamically added'.
-	].
-! !
-
-!HTML class methodsFor: 'html generation' stamp: 'RMV 10/14/2024 08:14:45'!
-el: nameString
-	^ self el: nameString attrs: nil content: ''
-! !
-
-!HTML class methodsFor: 'html generation' stamp: 'RMV 10/14/2024 08:14:53'!
-el: nameString attrs: attrsDictionary
-	^ self el: nameString attrs: attrsDictionary content: ''.
-! !
-
-!HTML class methodsFor: 'html generation' stamp: 'RMV 10/14/2024 08:25:49'!
-el: nameString attrs: attrsDictionary content: content
-	"Answer HTML string for element that is not self-closing."
-	| attrs text |
-	
-	attrs := ''.
-	attrsDictionary ifNotNil: [
-		| keys |
-		keys := attrsDictionary keys sort.
-		keys do: [:key |
-			attrs := '{1} {2}="{3}"' format: {attrs. key. attrsDictionary at: key}.
-		].
-	].
-
-	text := ''.
-	content ifNotNil: [
-		content isString
-			ifTrue: [ text := content ]
-			ifFalse: [
-				content isArray
-					ifTrue: [ content do: [:child | text := text, child] ]
-				ifFalse: [ Error signal: 'invalid content value' ]
-			]
-	].
-
-	^ '<{1}{2}>{3}</{1}>' format: {nameString. attrs. text}.	! !
-
-!HTML class methodsFor: 'html generation' stamp: 'RMV 10/14/2024 08:15:40'!
-el: nameString content: content
-	^ self el: nameString attrs: nil content: content
-! !
-
-!HTML class methodsFor: 'html generation' stamp: 'RMV 10/13/2024 15:19:36'!
-elc: nameString
-	"Answer HTML string for a self-closing element with no attributes."
-	^ self elc: nameString attrs: nil
-! !
-
-!HTML class methodsFor: 'html generation' stamp: 'RMV 10/13/2024 16:03:27'!
-elc: nameString attrs: attrsDictionary
-	"Answer HTML string for a self-closing element with attributes."
-	| attrs |
-	
-	attrs := ''.	
-	attrsDictionary ifNotNil: [
-		| keys |
-		keys := attrsDictionary keys sort.
-		keys do: [:key |
-			attrs := '{1} {2}="{3}"' format: {attrs. key. attrsDictionary at: key}.
-		].
-	].
-	
-	^ '<{1}{2}>' format: {nameString. attrs}.	! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-aAttrs: attrs content: content
-	^HTML el: 'a' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-aContent: content
-	^HTML el: 'a' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-area
-	^HTML elc: 'area'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-areaAttrs: attrs
-	^HTML elc: 'area' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-articleAttrs: attrs content: content
-	^HTML el: 'article' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-articleContent: content
-	^HTML el: 'article' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-asideAttrs: attrs content: content
-	^HTML el: 'aside' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-asideContent: content
-	^HTML el: 'aside' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-audioAttrs: attrs content: content
-	^HTML el: 'audio' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-audioContent: content
-	^HTML el: 'audio' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-bAttrs: attrs content: content
-	^HTML el: 'b' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-bContent: content
-	^HTML el: 'b' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-base
-	^HTML elc: 'base'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-baseAttrs: attrs
-	^HTML elc: 'base' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-blockquoteAttrs: attrs content: content
-	^HTML el: 'blockquote' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-blockquoteContent: content
-	^HTML el: 'blockquote' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-bodyAttrs: attrs content: content
-	^HTML el: 'body' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-bodyContent: content
-	^HTML el: 'body' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-br
-	^HTML elc: 'br'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-brAttrs: attrs
-	^HTML elc: 'br' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-buttonAttrs: attrs content: content
-	^HTML el: 'button' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-buttonContent: content
-	^HTML el: 'button' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-canvasAttrs: attrs content: content
-	^HTML el: 'canvas' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-canvasContent: content
-	^HTML el: 'canvas' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-captionAttrs: attrs content: content
-	^HTML el: 'caption' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-captionContent: content
-	^HTML el: 'caption' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-citeAttrs: attrs content: content
-	^HTML el: 'cite' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-citeContent: content
-	^HTML el: 'cite' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-codeAttrs: attrs content: content
-	^HTML el: 'code' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-codeContent: content
-	^HTML el: 'code' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-col
-	^HTML elc: 'col'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-colAttrs: attrs
-	^HTML elc: 'col' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-colgroupAttrs: attrs content: content
-	^HTML el: 'colgroup' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-colgroupContent: content
-	^HTML el: 'colgroup' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-ddAttrs: attrs content: content
-	^HTML el: 'dd' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-ddContent: content
-	^HTML el: 'dd' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-detailsAttrs: attrs content: content
-	^HTML el: 'details' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-detailsContent: content
-	^HTML el: 'details' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-dialogAttrs: attrs content: content
-	^HTML el: 'dialog' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-dialogContent: content
-	^HTML el: 'dialog' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-divAttrs: attrs content: content
-	^HTML el: 'div' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-divContent: content
-	^HTML el: 'div' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-dlAttrs: attrs content: content
-	^HTML el: 'dl' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-dlContent: content
-	^HTML el: 'dl' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-dtAttrs: attrs content: content
-	^HTML el: 'dt' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-dtContent: content
-	^HTML el: 'dt' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-emAttrs: attrs content: content
-	^HTML el: 'em' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-emContent: content
-	^HTML el: 'em' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-embed
-	^HTML elc: 'embed'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-embedAttrs: attrs
-	^HTML elc: 'embed' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-fieldsetAttrs: attrs content: content
-	^HTML el: 'fieldset' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-fieldsetContent: content
-	^HTML el: 'fieldset' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-figcaptionAttrs: attrs content: content
-	^HTML el: 'figcaption' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-figcaptionContent: content
-	^HTML el: 'figcaption' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-figureAttrs: attrs content: content
-	^HTML el: 'figure' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-figureContent: content
-	^HTML el: 'figure' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-formAttrs: attrs content: content
-	^HTML el: 'form' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-formContent: content
-	^HTML el: 'form' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h1Attrs: attrs content: content
-	^HTML el: 'h1' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h1Content: content
-	^HTML el: 'h1' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h2Attrs: attrs content: content
-	^HTML el: 'h2' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h2Content: content
-	^HTML el: 'h2' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h3Attrs: attrs content: content
-	^HTML el: 'h3' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h3Content: content
-	^HTML el: 'h3' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h4Attrs: attrs content: content
-	^HTML el: 'h4' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h4Content: content
-	^HTML el: 'h4' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h5Attrs: attrs content: content
-	^HTML el: 'h5' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h5Content: content
-	^HTML el: 'h5' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h6Attrs: attrs content: content
-	^HTML el: 'h6' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-h6Content: content
-	^HTML el: 'h6' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-headAttrs: attrs content: content
-	^HTML el: 'head' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-headContent: content
-	^HTML el: 'head' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-headerAttrs: attrs content: content
-	^HTML el: 'header' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-headerContent: content
-	^HTML el: 'header' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-hr
-	^HTML elc: 'hr'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-hrAttrs: attrs
-	^HTML elc: 'hr' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-htmlAttrs: attrs content: content
-	^HTML el: 'html' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-htmlContent: content
-	^HTML el: 'html' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-iAttrs: attrs content: content
-	^HTML el: 'i' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-iContent: content
-	^HTML el: 'i' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-iframeAttrs: attrs content: content
-	^HTML el: 'iframe' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-iframeContent: content
-	^HTML el: 'iframe' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-img
-	^HTML elc: 'img'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-imgAttrs: attrs
-	^HTML elc: 'img' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-input
-	^HTML elc: 'input'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-inputAttrs: attrs
-	^HTML elc: 'input' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-labelAttrs: attrs content: content
-	^HTML el: 'label' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-labelContent: content
-	^HTML el: 'label' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-liAttrs: attrs content: content
-	^HTML el: 'li' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-liContent: content
-	^HTML el: 'li' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-link
-	^HTML elc: 'link'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-linkAttrs: attrs
-	^HTML elc: 'link' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-mainAttrs: attrs content: content
-	^HTML el: 'main' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-mainContent: content
-	^HTML el: 'main' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-mapAttrs: attrs content: content
-	^HTML el: 'map' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-mapContent: content
-	^HTML el: 'map' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-markAttrs: attrs content: content
-	^HTML el: 'mark' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-markContent: content
-	^HTML el: 'mark' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-menuAttrs: attrs content: content
-	^HTML el: 'menu' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-menuContent: content
-	^HTML el: 'menu' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-meta
-	^HTML elc: 'meta'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-metaAttrs: attrs
-	^HTML elc: 'meta' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-navAttrs: attrs content: content
-	^HTML el: 'nav' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-navContent: content
-	^HTML el: 'nav' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-objectAttrs: attrs content: content
-	^HTML el: 'object' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-objectContent: content
-	^HTML el: 'object' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-olAttrs: attrs content: content
-	^HTML el: 'ol' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-olContent: content
-	^HTML el: 'ol' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-optgroupAttrs: attrs content: content
-	^HTML el: 'optgroup' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-optgroupContent: content
-	^HTML el: 'optgroup' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-optionAttrs: attrs content: content
-	^HTML el: 'option' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-optionContent: content
-	^HTML el: 'option' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-outputAttrs: attrs content: content
-	^HTML el: 'output' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-outputContent: content
-	^HTML el: 'output' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-pAttrs: attrs content: content
-	^HTML el: 'p' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-pContent: content
-	^HTML el: 'p' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-pictureAttrs: attrs content: content
-	^HTML el: 'picture' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-pictureContent: content
-	^HTML el: 'picture' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-preAttrs: attrs content: content
-	^HTML el: 'pre' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-preContent: content
-	^HTML el: 'pre' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-progressAttrs: attrs content: content
-	^HTML el: 'progress' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-progressContent: content
-	^HTML el: 'progress' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-qAttrs: attrs content: content
-	^HTML el: 'q' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-qContent: content
-	^HTML el: 'q' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-scriptAttrs: attrs content: content
-	^HTML el: 'script' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-scriptContent: content
-	^HTML el: 'script' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-sectionAttrs: attrs content: content
-	^HTML el: 'section' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-sectionContent: content
-	^HTML el: 'section' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-selectAttrs: attrs content: content
-	^HTML el: 'select' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-selectContent: content
-	^HTML el: 'select' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-slotAttrs: attrs content: content
-	^HTML el: 'slot' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-slotContent: content
-	^HTML el: 'slot' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-smallAttrs: attrs content: content
-	^HTML el: 'small' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-smallContent: content
-	^HTML el: 'small' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-source
-	^HTML elc: 'source'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-sourceAttrs: attrs
-	^HTML elc: 'source' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-spanAttrs: attrs content: content
-	^HTML el: 'span' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-spanContent: content
-	^HTML el: 'span' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-strongAttrs: attrs content: content
-	^HTML el: 'strong' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-strongContent: content
-	^HTML el: 'strong' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-styleAttrs: attrs content: content
-	^HTML el: 'style' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-styleContent: content
-	^HTML el: 'style' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-subAttrs: attrs content: content
-	^HTML el: 'sub' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-subContent: content
-	^HTML el: 'sub' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-summaryAttrs: attrs content: content
-	^HTML el: 'summary' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-summaryContent: content
-	^HTML el: 'summary' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-supAttrs: attrs content: content
-	^HTML el: 'sup' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-supContent: content
-	^HTML el: 'sup' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-tableAttrs: attrs content: content
-	^HTML el: 'table' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-tableContent: content
-	^HTML el: 'table' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-tbodyAttrs: attrs content: content
-	^HTML el: 'tbody' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-tbodyContent: content
-	^HTML el: 'tbody' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-tdAttrs: attrs content: content
-	^HTML el: 'td' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-tdContent: content
-	^HTML el: 'td' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-templateAttrs: attrs content: content
-	^HTML el: 'template' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-templateContent: content
-	^HTML el: 'template' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-textareaAttrs: attrs content: content
-	^HTML el: 'textarea' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-textareaContent: content
-	^HTML el: 'textarea' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-tfootAttrs: attrs content: content
-	^HTML el: 'tfoot' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-tfootContent: content
-	^HTML el: 'tfoot' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-thAttrs: attrs content: content
-	^HTML el: 'th' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-thContent: content
-	^HTML el: 'th' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-theadAttrs: attrs content: content
-	^HTML el: 'thead' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-theadContent: content
-	^HTML el: 'thead' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-timeAttrs: attrs content: content
-	^HTML el: 'time' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-timeContent: content
-	^HTML el: 'time' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-titleAttrs: attrs content: content
-	^HTML el: 'title' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-titleContent: content
-	^HTML el: 'title' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-trAttrs: attrs content: content
-	^HTML el: 'tr' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-trContent: content
-	^HTML el: 'tr' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:58'!
-track
-	^HTML elc: 'track'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:58'!
-trackAttrs: attrs
-	^HTML elc: 'track' attrs: attrs! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-uAttrs: attrs content: content
-	^HTML el: 'u' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-uContent: content
-	^HTML el: 'u' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-ulAttrs: attrs content: content
-	^HTML el: 'ul' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-ulContent: content
-	^HTML el: 'ul' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-varAttrs: attrs content: content
-	^HTML el: 'var' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-varContent: content
-	^HTML el: 'var' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-videoAttrs: attrs content: content
-	^HTML el: 'video' attrs: attrs content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:57'!
-videoContent: content
-	^HTML el: 'video' content: content! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:58'!
-wbr
-	^HTML elc: 'wbr'! !
-
-!HTML class methodsFor: 'dynamically added' stamp: 'RMV 10/14/2024 08:18:58'!
-wbrAttrs: attrs
-	^HTML elc: 'wbr' attrs: attrs! !
-
 !MimeType class methodsFor: 'as yet unclassified' stamp: 'RMV 10/13/2024 11:47:49'!
 forFileExtension: aFileExtension
 	^ ExtensionToMimeDict at: aFileExtension ifAbsent: 'text/plain'! !
@@ -1824,6 +878,18 @@ request: aWebRequest route: aWebRoute
 	request := aWebRequest.
 	route := aWebRoute.! !
 
+!WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 10:27:22'!
+html: aString
+	self request send200Response: aString contentType: 'text/html'
+
+! !
+
+!WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 10:29:03'!
+json: aString
+	self request send200Response: aString contentType: 'application/json'
+
+! !
+
 !WebContext methodsFor: 'accessing' stamp: 'RMV 9/29/2024 10:15:57'!
 pathParameter: aParameter
 	| index tokens |
@@ -1859,9 +925,93 @@ request
 route
 	^route! !
 
+!WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 10:26:30'!
+text: aString
+	self request send200Response: aString
+! !
+
+!WebContext class methodsFor: 'as yet unclassified' stamp: 'RMV 10/17/2024 09:15:13'!
+html: specArray
+	"Generates a String of HTML from an Array."
+	| elementName rest stream |
+	
+	specArray isArray ifFalse: [
+		Error signal: 'html method requires Array argument'
+	].
+
+	elementName := specArray first.
+	elementName isKindOf: CharacterSequence :: ifFalse: [
+		elementName class name print.
+		Error signal: 'html method Array argument first element must be a CharacterSequence'
+	].
+
+	stream := WriteStream on: (String new: 100).
+	stream nextPut: $<.
+	stream nextPutAll: elementName.
+	
+	rest := specArray allButFirst.
+	rest do: [:item |
+		item class = Association ifTrue: [
+			| key |
+			key := item key.
+			key isKindOf: CharacterSequence :: ifFalse: [
+				Error signal: 'html method Array element Association must have CharacterSequence key'
+			].
+			stream nextPut: Character space.
+			stream nextPutAll: key.
+			stream nextPut: $=.
+			stream nextPut: $".
+			stream nextPutAll: item value asString.
+			stream nextPut: $".
+		]
+	].
+
+	stream nextPut: $>.
+
+	rest do: [:item |
+		item isArray
+			ifTrue: [ stream nextPutAll: (self html: item) ]
+			ifFalse: [
+				item class = Association ifFalse: [
+					stream nextPutAll: item asString
+				]
+			]
+	].
+
+	self selfClosingElements includes: elementName :: ifFalse: [
+		stream nextPut: $<.
+		stream nextPut: $/.
+		stream nextPutAll: elementName.
+		stream nextPut: $>.
+	].
+
+	^ stream contents.
+
+
+
+! !
+
 !WebContext class methodsFor: 'as yet unclassified' stamp: 'RMV 9/26/2024 16:56:50'!
 newRequest: aWebRequest route: aWebRoute
 	^WebContext new request: aWebRequest route: aWebRoute! !
+
+!WebContext class methodsFor: 'as yet unclassified' stamp: 'RMV 10/17/2024 09:15:40'!
+selfClosingElements
+	^ Set newFrom: #(
+     		#area
+     		#base
+     		#br
+     		#col
+     		#embed
+     		#hr
+     		#img
+     		#input
+     		#link
+     		#meta
+     		#source
+     		#track
+     		#wbr
+	).! !
 
 !WebRoute methodsFor: 'accessing' stamp: 'RMV 10/9/2024 15:23:04'!
 handler
@@ -1925,5 +1075,4 @@ method: methodSymbol path: pathString handler: handler
 logAs: aString
 	('{1} = {2}' format: {aString. self}) print! !
 Dog initialize!
-HTML initialize!
 MimeType initialize!
