@@ -1,8 +1,20 @@
 # WebClientPlus
 
-This is a package for Cuis Smalltalk that simplifies development of HTTP endpoints
-and web applications. It defines classes that extend classes from the WebClient package.
-Perhaps the improvments this package makes hould be merged into the WebClient package.
+This is a package for Cuis Smalltalk that simplifies development
+of HTTP endpoints and web applications.
+It defines classes that extend classes from the WebClient package.
+Perhaps the improvements this package makes
+should be merged into the WebClient package.
+
+The main improvements this adds over the WebClient package are:
+
+- ability to serve static files with a "Content-Type" header
+  that is appropriate for the file extension
+- an easier way to define routes
+- ability to access path parameters in route handlers
+- ability to access query parameters in route handlers
+
+## Basic Example
 
 Here is a taste of what it's like to implement a web application using this package.
 This uses a bit of htmx which is a client-side JavaScript library
@@ -40,12 +52,12 @@ and it configures the supported routes.
 ```smalltalk
 initialize
     super initialize.
-    self staticFilePath: 'public'.    
-    
+    self staticFilePath: 'public'.
+
     self method: #GET path: '/version' handler: [ :context |
         context text: (SystemVersion current versionString)
     ].
-    
+
     self method: #GET path: '/' handler: #index:.
 ```
 
@@ -54,7 +66,7 @@ The `#index:` method below is used by the `GET /` route.
 ```smalltalk
 index: aWebContext
     | html |
-        
+
     html := WebContext html: {
         #html. #lang->#en.
             {#head.
@@ -68,7 +80,7 @@ index: aWebContext
                 {#div. #id->'version'}
             }
     }.
-        
+
     aWebContext html: html.
 ```
 
@@ -90,5 +102,53 @@ The text that is returned is placed inside the element with the id "version".
 
 ![Screenshot](https://mvolkmann.github.io/blog/assets/Cuis-Smalltalk-WebClientPlus-demo.png)
 
-For a non-trival example, see the `DogWebServer` class which implements endpoints
-for all the CRUD operations needed to manage a collection of dog descriptions.
+## Defining CRUD Endpoints
+
+See the `DogWebServer` class which implements endpoints for
+all the CRUD operations needed to manage a collection of dog descriptions.
+
+## Headless Server
+
+Here are steps to run a web server in headless mode.
+
+1. Open the base image.
+1. Open a Workspace.
+1. Enter and evaluate the following expressions in the Workspace:
+
+   ```smalltalk
+   Feature require: 'WebClientPlus'.
+   HtmxServer new listenOn: 3000
+   ```
+
+1. Open the World menu and select "Save Image as ...".
+
+1. Enter a name like "HtmxServer", which is
+   a demo server in the WebClientPlus package.
+
+1. Open the World menu and select "Quit without saving".
+
+1. Confirm by click "Yes".
+
+1. Create a shell script like the following in the file `web-server-demo`:
+
+   ```bash
+   !/usr/bin/env zsh
+   CUIS_DIR=$SMALLTALK_DIR/Cuis-Smalltalk-Dev
+   VM=$CUIS_DIR/CuisVM.app/Contents/MacOS/Squeak
+   IMAGE=$CUIS_DIR/CuisImage/WebClientPlus.image
+   $VM -headless $IMAGE
+   ```
+
+1. Make the shell script executable.
+
+   ```bash
+   chmod a+x web-server-demo
+   ```
+
+1. Start the web server by entering the following:
+
+   ```bash
+   ./web-server-demo
+   ```
+
+1. Browse `localhost:3000`
