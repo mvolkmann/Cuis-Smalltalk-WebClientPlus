@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6784] on 18 October 2024 at 7:13:51 pm'!
+'From Cuis7.1 [latest update: #6784] on 18 October 2024 at 7:42:18 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 31!
+!provides: 'WebClientPlus' 1 32!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -565,21 +565,9 @@ getDogs: aWebContext
 		ifTrue: [^self getDogsAsHtml: aWebContext]
 		ifFalse: [^self getDogsAsJson: aWebContext]! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 12:42:17'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/18/2024 19:42:06'!
 getDogsAsHtml: aWebContext
-	| css dogs html tableRows |
-	
-	css := '
-		body { font-family: sans-serif }
-		table { border-collapse: collapse }
-		td, th {
-			border: 1px solid gray;
-			padding: 0.5rem;
-		}
-		th {
-			background-color: pink;
-		}
-	'.
+	| dogs spec tableRows |
 	
 	"Create array of dogs sorted on their names."
 	dogs := dogDict values sort: [:a :b | a name < b name].
@@ -589,21 +577,18 @@ getDogsAsHtml: aWebContext
 		{ #tr. { #td. dog name}. { #td. dog breed } }.
 	].
 
-	html := WebContext html: {
-		#html.
-			{ #head.
-				{#title. 'My Dogs'}.
-				{ #style. css }
-			}.
-			{ #body.
-				{ #h1. 'My Dogs' }.
-				{ #table.
-					{ #tr. { #th. 'Name' }. { #th. 'Breed' } }
-				}, tableRows
-			}
+	spec := Dictionary newFrom: {
+		#title->'My Dogs'.
+		#stylesheets->#('dog.css').
+		#body->{
+			{#h1. 'My Dogs'}.
+			{ #table.
+				{ #tr. { #th. 'Name' }. { #th. 'Breed' } }
+			}, tableRows
+		}
 	}.
-		
-	aWebContext html: html.
+
+	aWebContext document: spec.
 ! !
 
 !DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 12:05:58'!
