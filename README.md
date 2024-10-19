@@ -65,23 +65,19 @@ The `#index:` method below is used by the `GET /` route.
 
 ```smalltalk
 index: aWebContext
-    | html |
+    | spec |
 
-    html := WebContext html: {
-        #html. #lang->#en.
-            {#head.
-                {#title. 'My htmx Demo'}.
-                {#link. #rel->#stylesheet. #href->'demo.css'}.
-                {#script. #src->'https://unpkg.com/htmx.org@2.0.3'}
-            }.
-            {#body.
-                {#h1. 'My htmx Demo'}.
-                {#button. 'hx-get'->'/version'. 'hx-target'->'#version'. 'Get Version'}.
-                {#div. #id->'version'}
-            }
+    spec := Dictionary newFrom: {
+        #title->'My htmx Demo2'.
+        #stylesheets->#('demo.css').
+        #scripts->#('https://unpkg.com/htmx.org@2.0.3').
+        #body->{
+            {#h1. 'My htmx Demo'}.
+            {#button. 'hx-get'->'/version'. 'hx-target'->'#version'. 'Get Version'}.
+            {#div. #id->'version'}
+        }
     }.
-
-    aWebContext html: html.
+    aWebContext document: spec.
 ```
 
 After cloning this repository, copy the `public` directory

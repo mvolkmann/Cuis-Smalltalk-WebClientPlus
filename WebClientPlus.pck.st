@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6771] on 17 October 2024 at 4:29:07 pm'!
+'From Cuis7.1 [latest update: #6784] on 18 October 2024 at 7:13:51 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 30!
+!provides: 'WebClientPlus' 1 31!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -676,25 +676,21 @@ updateDog: aWebContext
 	"Return the updated dog as JSON."
 	^ aWebContext json: (Json render: dog).! !
 
-!HtmxServer methodsFor: 'initialization' stamp: 'RMV 10/17/2024 16:20:05'!
+!HtmxServer methodsFor: 'initialization' stamp: 'RMV 10/18/2024 19:07:48'!
 index: aWebContext
-	| html |
-		
-	html := WebContext html: {
-		#html. #lang->#en.
-			{#head.
-				{#title. 'My htmx Demo'}.
-				{#link. #rel->#stylesheet. #href->'demo.css'}.
-				{#script. #src->'https://unpkg.com/htmx.org@2.0.3'}
-			}.
-			{#body.
-				{#h1. 'My htmx Demo'}.
-				{#button. 'hx-get'->'/version'. 'hx-target'->'#version'. 'Get Version'}.
-				{#div. #id->'version'}
-			}
+	| spec |
+
+	spec := Dictionary newFrom: {
+		#title->'My htmx Demo2'.
+		#stylesheets->#('demo.css').
+		#scripts->#('https://unpkg.com/htmx.org@2.0.3').
+		#body->{
+			{#h1. 'My htmx Demo'}.
+			{#button. 'hx-get'->'/version'. 'hx-target'->'#version'. 'Get Version'}.
+			{#div. #id->'version'}
+		}
 	}.
-		
-	aWebContext html: html.! !
+	aWebContext document: spec.! !
 
 !HtmxServer methodsFor: 'initialization' stamp: 'RMV 10/17/2024 16:21:41'!
 initialize		
@@ -845,6 +841,26 @@ clientError: aString
 	self request send400Response: aString
 ! !
 
+!WebContext methodsFor: 'accessing' stamp: 'RMV 10/18/2024 19:12:51'!
+document: specDict
+	| body bodyContent head scripts stylesheets title |
+	
+	head := OrderedCollection newFrom: #(#head).
+	
+	title := specDict at: #title ifAbsent: nil.
+	title ifNotNil: [ head add: 				{#title. 'My htmx Demo'} ].
+	
+	stylesheets := specDict at: #stylesheets ifAbsent: #().
+	stylesheets do: [ :link | head add: {#link. #rel->#stylesheet. #href->link} ].
+	
+	scripts := specDict at: #scripts ifAbsent: #().
+	scripts do: [ :script | head add: {#script. #src->script} ].
+
+	bodyContent := specDict at: #body ifAbsent: #().
+	body := {#body}, bodyContent.
+
+	self html: (WebContext generateHtmlString: { #html. #lang->#en. head. body. }).! !
+
 !WebContext methodsFor: 'accessing' stamp: 'RMV 10/17/2024 10:27:22'!
 html: aString
 	self request send200Response: aString contentType: 'text/html'
@@ -924,32 +940,31 @@ text: aString
 	self request send200Response: aString
 ! !
 
-!WebContext class methodsFor: 'as yet unclassified' stamp: 'RMV 10/17/2024 09:15:13'!
-html: specArray
+!WebContext class methodsFor: 'as yet unclassified' stamp: 'RMV 10/18/2024 19:13:35'!
+generateHtmlString: specColl
 	"Generates a String of HTML from an Array."
 	| elementName rest stream |
 	
-	specArray isArray ifFalse: [
-		Error signal: 'html method requires Array argument'
+	specColl isKindOf: SequenceableCollection :: ifFalse: [
+		Error signal: 'WebContent class method html: requires SequenceableCollection argument'
 	].
 
-	elementName := specArray first.
+	elementName := specColl first.
 	elementName isKindOf: CharacterSequence :: ifFalse: [
-		elementName class name print.
-		Error signal: 'html method Array argument first element must be a CharacterSequence'
+		Error signal: 'WebContent class method html: specColl first element must be CharacterSequence but was ', elementName class name
 	].
 
 	stream := WriteStream on: (String new: 100).
 	stream nextPut: $<.
 	stream nextPutAll: elementName.
 	
-	rest := specArray allButFirst.
+	rest := specColl allButFirst.
 	rest do: [:item |
 		item class = Association ifTrue: [
 			| key |
 			key := item key.
 			key isKindOf: CharacterSequence :: ifFalse: [
-				Error signal: 'html method Array element Association must have CharacterSequence key'
+				Error signal: 'WebContent class method html: Association must have CharacterSequence key'
 			].
 			stream nextPut: Character space.
 			stream nextPutAll: key.
@@ -963,12 +978,141 @@ html: specArray
 	stream nextPut: $>.
 
 	rest do: [:item |
-		item isArray
-			ifTrue: [ stream nextPutAll: (self html: item) ]
-			ifFalse: [
+		item isKindOf: CharacterSequence ::
+			ifTrue: [
 				item class = Association ifFalse: [
 					stream nextPutAll: item asString
 				]
+			]
+			ifFalse: [
+				item isKindOf: SequenceableCollection ::
+					ifTrue: [ stream nextPutAll: (self html: item) ]
+			]
+	].
+
+	self selfClosingElements includes: elementName :: ifFalse: [
+		stream nextPut: $<.
+		stream nextPut: $/.
+		stream nextPutAll: elementName.
+		stream nextPut: $>.
+	].
+
+	^ stream contents.
+
+
+
+! !
+
+!WebContext class methodsFor: 'as yet unclassified' stamp: 'RMV 10/18/2024 19:13:03'!
+generateHtmlStringh: specColl
+	"Generates a String of HTML from an Array."
+	| elementName rest stream |
+	
+	specColl isKindOf: SequenceableCollection :: ifFalse: [
+		Error signal: 'WebContent class method html: requires SequenceableCollection argument'
+	].
+
+	elementName := specColl first.
+	elementName isKindOf: CharacterSequence :: ifFalse: [
+		Error signal: 'WebContent class method html: specColl first element must be CharacterSequence but was ', elementName class name
+	].
+
+	stream := WriteStream on: (String new: 100).
+	stream nextPut: $<.
+	stream nextPutAll: elementName.
+	
+	rest := specColl allButFirst.
+	rest do: [:item |
+		item class = Association ifTrue: [
+			| key |
+			key := item key.
+			key isKindOf: CharacterSequence :: ifFalse: [
+				Error signal: 'WebContent class method html: Association must have CharacterSequence key'
+			].
+			stream nextPut: Character space.
+			stream nextPutAll: key.
+			stream nextPut: $=.
+			stream nextPut: $".
+			stream nextPutAll: item value asString.
+			stream nextPut: $".
+		]
+	].
+
+	stream nextPut: $>.
+
+	rest do: [:item |
+		item isKindOf: CharacterSequence ::
+			ifTrue: [
+				item class = Association ifFalse: [
+					stream nextPutAll: item asString
+				]
+			]
+			ifFalse: [
+				item isKindOf: SequenceableCollection ::
+					ifTrue: [ stream nextPutAll: (self html: item) ]
+			]
+	].
+
+	self selfClosingElements includes: elementName :: ifFalse: [
+		stream nextPut: $<.
+		stream nextPut: $/.
+		stream nextPutAll: elementName.
+		stream nextPut: $>.
+	].
+
+	^ stream contents.
+
+
+
+! !
+
+!WebContext class methodsFor: 'as yet unclassified' stamp: 'RMV 10/18/2024 19:06:54'!
+html: specColl
+	"Generates a String of HTML from an Array."
+	| elementName rest stream |
+	
+	specColl isKindOf: SequenceableCollection :: ifFalse: [
+		Error signal: 'WebContent class method html: requires SequenceableCollection argument'
+	].
+
+	elementName := specColl first.
+	elementName isKindOf: CharacterSequence :: ifFalse: [
+		Error signal: 'WebContent class method html: specColl first element must be CharacterSequence but was ', elementName class name
+	].
+
+	stream := WriteStream on: (String new: 100).
+	stream nextPut: $<.
+	stream nextPutAll: elementName.
+	
+	rest := specColl allButFirst.
+	rest do: [:item |
+		item class = Association ifTrue: [
+			| key |
+			key := item key.
+			key isKindOf: CharacterSequence :: ifFalse: [
+				Error signal: 'WebContent class method html: Association must have CharacterSequence key'
+			].
+			stream nextPut: Character space.
+			stream nextPutAll: key.
+			stream nextPut: $=.
+			stream nextPut: $".
+			stream nextPutAll: item value asString.
+			stream nextPut: $".
+		]
+	].
+
+	stream nextPut: $>.
+
+	rest do: [:item |
+		item isKindOf: CharacterSequence ::
+			ifTrue: [
+				item class = Association ifFalse: [
+					stream nextPutAll: item asString
+				]
+			]
+			ifFalse: [
+				item isKindOf: SequenceableCollection ::
+					ifTrue: [ stream nextPutAll: (self html: item) ]
 			]
 	].
 
