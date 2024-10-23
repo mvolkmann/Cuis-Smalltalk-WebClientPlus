@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6784] on 18 October 2024 at 7:42:18 pm'!
+'From Cuis7.1 [latest update: #6792] on 22 October 2024 at 7:36:18 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 32!
+!provides: 'WebClientPlus' 1 35!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -346,7 +346,7 @@ staticFilePath
 staticFilePath: filePathString
 	staticFilePath := filePathString! !
 
-!WebServerPlus methodsFor: 'initialization' stamp: 'RMV 10/13/2024 11:50:11'!
+!WebServerPlus methodsFor: 'initialization' stamp: 'RMV 10/22/2024 19:28:42'!
 initialize
 	super initialize.
 	
@@ -358,7 +358,7 @@ initialize
 	"This handles all requests."
 	action := [:request |
 		| route |
-		"'got request for ', request method, ': ', request url :: print."
+		'got request for ', request method, ': ', request url :: print.
 		route := self routeForMethod: request method path: request url.
 		route
 			ifNotNil: [
@@ -469,7 +469,7 @@ routeForMethod: methodSymbol path: pathString
 jsonContentType
 	^ 'application/json; charset=utf-8'! !
 
-!DogWebServer methodsFor: 'initialization' stamp: 'RMV 10/17/2024 12:06:34'!
+!DogWebServer methodsFor: 'initialization' stamp: 'RMV 10/22/2024 19:35:53'!
 initialize
 	| dog1 dog2 |
 		
@@ -486,7 +486,7 @@ initialize
 	
 	"Register routes."
 	self method: #GET path: '/hello' handler: [ :context |
-		context request send200Response: 'Hello, World!!'
+		context text: 'Hello, World!!'
 	].
 	"Don't forget the colon the end of the selectors!!"
 	self method: #GET path: '/dog' handler: #getDogs:.
@@ -661,12 +661,12 @@ updateDog: aWebContext
 	"Return the updated dog as JSON."
 	^ aWebContext json: (Json render: dog).! !
 
-!HtmxServer methodsFor: 'initialization' stamp: 'RMV 10/18/2024 19:07:48'!
+!HtmxServer methodsFor: 'initialization' stamp: 'RMV 10/22/2024 19:22:42'!
 index: aWebContext
 	| spec |
 
 	spec := Dictionary newFrom: {
-		#title->'My htmx Demo2'.
+		#title->'My htmx Demo'.
 		#stylesheets->#('demo.css').
 		#scripts->#('https://unpkg.com/htmx.org@2.0.3').
 		#body->{
