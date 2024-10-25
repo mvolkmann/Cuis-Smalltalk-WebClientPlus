@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6792] on 24 October 2024 at 7:26:21 pm'!
+'From Cuis7.1 [latest update: #6792] on 25 October 2024 at 8:40:01 am'!
 'Description '!
-!provides: 'WebClientPlus' 1 37!
+!provides: 'WebClientPlus' 1 38!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -470,7 +470,7 @@ routeForMethod: methodSymbol path: pathString
 jsonContentType
 	^ 'application/json; charset=utf-8'! !
 
-!WebServerPlus class methodsFor: 'as yet unclassified' stamp: 'RMV 10/24/2024 18:59:31'!
+!WebServerPlus class methodsFor: 'as yet unclassified' stamp: 'RMV 10/25/2024 08:39:17'!
 openPortFrom: aNumber
 	| hostAddress port socket |
 	
@@ -478,14 +478,14 @@ openPortFrom: aNumber
 	port := aNumber.
 	socket := Socket newTCP.
 	
-	[ true ] whileTrue: [
+	[
 		"'trying port {1}' format: { port } :: print."
 		[
 			socket connectTo: hostAddress port: port waitForConnectionFor: 1.
 			socket disconnect.
 			port := port + 1.
 		] on: ConnectionTimedOut do: [ :ex | ^ port ].
-	].! !
+	] repeat! !
 
 !DogWebServer methodsFor: 'initialization' stamp: 'RMV 10/22/2024 19:35:53'!
 initialize
