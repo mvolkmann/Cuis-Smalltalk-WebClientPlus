@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6792] on 22 October 2024 at 7:36:18 pm'!
+'From Cuis7.1 [latest update: #6792] on 24 October 2024 at 7:26:21 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 35!
+!provides: 'WebClientPlus' 1 37!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -9,7 +9,7 @@ SystemOrganization addCategory: #WebClientPlus!
 
 !classDefinition: #DogWebServerTests category: #WebClientPlus!
 TestCase subclass: #DogWebServerTests
-	instanceVariableNames: ''
+	instanceVariableNames: 'port server'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'WebClientPlus'!
@@ -98,20 +98,16 @@ WebRoute class
 	instanceVariableNames: 'routes'!
 
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/12/2024 19:49:25'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/24/2024 19:18:51'!
 setUp
-	| dog port url |
-	
+	| dog url |
+		
+	"Start the web server on an available port."
+	port := WebServerPlus openPortFrom: 3000.
+	server := DogWebServer new.
+	server listenOn: port.	
+
 	url := self baseUrl.
-	
-	"If the web server is not running, start it."
-	port := 3000.
-	[
-		Socket newTCP connectToHostNamed: 'localhost' port: port.
-	] on: ConnectionTimedOut do: [
-		'starting web server' print.
-		DogWebServer new listenOn: port.	
-	].
 
 	"Delete all the dogs."
 	WebClientPlus method: #DELETE url: url.
@@ -121,6 +117,10 @@ setUp
 	WebClientPlus method: #POST url: url content: dog asJsonString.
 	dog := Dog name: 'Oscar' breed: 'German Shorthaired Pointer'.
 	WebClientPlus method: #POST url: url content: dog asJsonString.! !
+
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/24/2024 19:17:28'!
+tearDown
+	server destroy.! !
 
 !DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/12/2024 15:40:20'!
 testDelete
@@ -202,11 +202,12 @@ testHeadDogs
 	self assert: res content equals: ''.
 	! !
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/9/2024 15:57:56'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/24/2024 19:16:52'!
 testHello
-	| res |
+	| res url |
 
-	res := WebClientPlus method: #GET url: 'http://localhost:3000/hello'.
+	url := 'http://localhost:{1}/hello' format: { port }.
+	res := WebClientPlus method: #GET url: url.
 	self assert: res code equals: 200.
 	self assert: res content equals: 'Hello, World!!'.
 ! !
@@ -299,9 +300,9 @@ testPut
 	self assert: (json at: #breed) equals: breed.
 ! !
 
-!DogWebServerTests methodsFor: 'accessing' stamp: 'RMV 10/9/2024 18:38:31'!
+!DogWebServerTests methodsFor: 'accessing' stamp: 'RMV 10/24/2024 19:13:00'!
 baseUrl
-	^ 'http://localhost:3000/dog'! !
+	^ 'http://localhost:{1}/dog' format: { port }! !
 
 !WebClientPlus class methodsFor: 'as yet unclassified' stamp: 'RMV 10/8/2024 18:29:51'!
 method: methodSymbol url: urlString
@@ -346,7 +347,7 @@ staticFilePath
 staticFilePath: filePathString
 	staticFilePath := filePathString! !
 
-!WebServerPlus methodsFor: 'initialization' stamp: 'RMV 10/22/2024 19:28:42'!
+!WebServerPlus methodsFor: 'initialization' stamp: 'RMV 10/24/2024 19:26:16'!
 initialize
 	super initialize.
 	
@@ -358,7 +359,7 @@ initialize
 	"This handles all requests."
 	action := [:request |
 		| route |
-		'got request for ', request method, ': ', request url :: print.
+		"'got request for {1} {2}' format: { request method. request url } :: print."
 		route := self routeForMethod: request method path: request url.
 		route
 			ifNotNil: [
@@ -469,6 +470,23 @@ routeForMethod: methodSymbol path: pathString
 jsonContentType
 	^ 'application/json; charset=utf-8'! !
 
+!WebServerPlus class methodsFor: 'as yet unclassified' stamp: 'RMV 10/24/2024 18:59:31'!
+openPortFrom: aNumber
+	| hostAddress port socket |
+	
+	hostAddress := NetNameResolver addressForName: 'localhost'.
+	port := aNumber.
+	socket := Socket newTCP.
+	
+	[ true ] whileTrue: [
+		"'trying port {1}' format: { port } :: print."
+		[
+			socket connectTo: hostAddress port: port waitForConnectionFor: 1.
+			socket disconnect.
+			port := port + 1.
+		] on: ConnectionTimedOut do: [ :ex | ^ port ].
+	].! !
+
 !DogWebServer methodsFor: 'initialization' stamp: 'RMV 10/22/2024 19:35:53'!
 initialize
 	| dog1 dog2 |
@@ -551,13 +569,12 @@ getDogAsJson: aWebContext
 		ifNil: [ aWebContext notFound ]
 		ifNotNil: [ aWebContext json: (Json render: dog) ]! !
 
-!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/17/2024 12:59:49'!
+!DogWebServer methodsFor: 'message handling' stamp: 'RMV 10/24/2024 19:19:40'!
 getDogs: aWebContext	
-	| queryParams |
 	
 	"This just demonstrates that we can get query parameters."
-	queryParams := aWebContext queryParameters.
-	queryParams logAs: 'queryParams'.
+	"queryParams := aWebContext queryParameters.
+	queryParams logAs: 'queryParams'."
 	
 	"Only return HTML if requested in the Accept header.
 	Otherwise default to returning JSON."
