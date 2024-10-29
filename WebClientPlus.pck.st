@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6796] on 28 October 2024 at 8:22:41 pm'!
+'From Cuis7.1 [latest update: #6797] on 29 October 2024 at 8:38:22 am'!
 'Description '!
-!provides: 'WebClientPlus' 1 40!
+!provides: 'WebClientPlus' 1 41!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -97,6 +97,10 @@ Object subclass: #WebRoute
 WebRoute class
 	instanceVariableNames: 'routes'!
 
+
+!WebServerPlus commentStamp: 'RMV 10/29/2024 08:30:14' prior: 0!
+This builds on the WebServer class from the WebClient package, adding many features.
+In particular, it makes it easier to define HTTP endpoints.!
 
 !DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/28/2024 20:18:44'!
 setUp
@@ -346,8 +350,9 @@ method: methodSymbol url: urlString headers: headerDict content: contentString
 	^res.
 ! !
 
-!WebServerPlus methodsFor: 'accessing' stamp: 'RMV 10/13/2024 12:09:32'!
+!WebServerPlus methodsFor: 'accessing' stamp: 'RMV 10/29/2024 08:31:32'!
 staticFilePath
+	"Answer the path from which static files will be served"
 	^staticFilePath! !
 
 !WebServerPlus methodsFor: 'accessing' stamp: 'RMV 10/13/2024 12:03:09'!
