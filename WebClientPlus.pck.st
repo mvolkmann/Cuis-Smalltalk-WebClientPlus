@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6792] on 25 October 2024 at 8:40:01 am'!
+'From Cuis7.1 [latest update: #6796] on 28 October 2024 at 8:22:41 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 38!
+!provides: 'WebClientPlus' 1 40!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -98,25 +98,32 @@ WebRoute class
 	instanceVariableNames: 'routes'!
 
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/24/2024 19:18:51'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/28/2024 20:18:44'!
 setUp
 	| dog url |
 		
 	"Start the web server on an available port."
-	port := WebServerPlus openPortFrom: 3000.
-	server := DogWebServer new.
-	server listenOn: port.	
+	[
+		server := DogWebServer new.
+		"port := WebServerPlus openPort."
+		port := 3001.
+		port logAs: 'DogWebServerTests using port'.
+		server listenOn: port.	
+		
+		url := self baseUrl.
+		url logAs: 'DogWebServerTests using url'.
 
-	url := self baseUrl.
+		"Delete all the dogs."
+		WebClientPlus method: #DELETE url: url.
 
-	"Delete all the dogs."
-	WebClientPlus method: #DELETE url: url.
+		"Create initial set of dogs"
+		dog := Dog name: 'Comet' breed: 'Whippet'.
+		WebClientPlus method: #POST url: url content: dog asJsonString.
+		dog := Dog name: 'Oscar' breed: 'German Shorthaired Pointer'.
+		WebClientPlus method: #POST url: url content: dog asJsonString.	
+	] on: Error do: [:ex | ex inspect]
 
-	"Create initial set of dogs"
-	dog := Dog name: 'Comet' breed: 'Whippet'.
-	WebClientPlus method: #POST url: url content: dog asJsonString.
-	dog := Dog name: 'Oscar' breed: 'German Shorthaired Pointer'.
-	WebClientPlus method: #POST url: url content: dog asJsonString.! !
+! !
 
 !DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/24/2024 19:17:28'!
 tearDown
@@ -470,22 +477,16 @@ routeForMethod: methodSymbol path: pathString
 jsonContentType
 	^ 'application/json; charset=utf-8'! !
 
-!WebServerPlus class methodsFor: 'as yet unclassified' stamp: 'RMV 10/25/2024 08:39:17'!
-openPortFrom: aNumber
-	| hostAddress port socket |
+!WebServerPlus class methodsFor: 'as yet unclassified' stamp: 'RMV 10/28/2024 20:03:03'!
+openPort
+	"Answer an open port number"
+	| port socket |
 	
-	hostAddress := NetNameResolver addressForName: 'localhost'.
-	port := aNumber.
 	socket := Socket newTCP.
-	
-	[
-		"'trying port {1}' format: { port } :: print."
-		[
-			socket connectTo: hostAddress port: port waitForConnectionFor: 1.
-			socket disconnect.
-			port := port + 1.
-		] on: ConnectionTimedOut do: [ :ex | ^ port ].
-	] repeat! !
+	socket listenOn: 0. "gets an ephemeral port"
+	port := socket localPort.
+	socket close.
+	^port.! !
 
 !DogWebServer methodsFor: 'initialization' stamp: 'RMV 10/22/2024 19:35:53'!
 initialize
