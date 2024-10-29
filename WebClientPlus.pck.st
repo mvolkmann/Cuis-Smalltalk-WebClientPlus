@@ -1,6 +1,6 @@
-'From Cuis7.1 [latest update: #6797] on 29 October 2024 at 8:38:22 am'!
+'From Cuis7.1 [latest update: #6797] on 29 October 2024 at 2:06:32 pm'!
 'Description '!
-!provides: 'WebClientPlus' 1 41!
+!provides: 'WebClientPlus' 1 45!
 !requires: 'WebClient' 1 37 nil!
 !requires: 'JSON' 1 26 nil!
 !requires: 'Regex-Core' 1 6 nil!
@@ -9,7 +9,7 @@ SystemOrganization addCategory: #WebClientPlus!
 
 !classDefinition: #DogWebServerTests category: #WebClientPlus!
 TestCase subclass: #DogWebServerTests
-	instanceVariableNames: 'port server'
+	instanceVariableNames: 'server'
 	classVariableNames: ''
 	poolDictionaries: ''
 	category: 'WebClientPlus'!
@@ -102,20 +102,16 @@ WebRoute class
 This builds on the WebServer class from the WebClient package, adding many features.
 In particular, it makes it easier to define HTTP endpoints.!
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/28/2024 20:18:44'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/29/2024 14:01:47'!
 setUp
 	| dog url |
 		
-	"Start the web server on an available port."
+	"Start web server on any available port."
 	[
 		server := DogWebServer new.
-		"port := WebServerPlus openPort."
-		port := 3001.
-		port logAs: 'DogWebServerTests using port'.
-		server listenOn: port.	
+		server listenOn: 0. "ephemeral port"
 		
 		url := self baseUrl.
-		url logAs: 'DogWebServerTests using url'.
 
 		"Delete all the dogs."
 		WebClientPlus method: #DELETE url: url.
@@ -213,11 +209,11 @@ testHeadDogs
 	self assert: res content equals: ''.
 	! !
 
-!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/24/2024 19:16:52'!
+!DogWebServerTests methodsFor: 'testing' stamp: 'RMV 10/29/2024 14:05:46'!
 testHello
 	| res url |
 
-	url := 'http://localhost:{1}/hello' format: { port }.
+	url := 'http://localhost:{1}/hello' format: { server port }.
 	res := WebClientPlus method: #GET url: url.
 	self assert: res code equals: 200.
 	self assert: res content equals: 'Hello, World!!'.
@@ -311,9 +307,9 @@ testPut
 	self assert: (json at: #breed) equals: breed.
 ! !
 
-!DogWebServerTests methodsFor: 'accessing' stamp: 'RMV 10/24/2024 19:13:00'!
+!DogWebServerTests methodsFor: 'accessing' stamp: 'RMV 10/29/2024 14:02:05'!
 baseUrl
-	^ 'http://localhost:{1}/dog' format: { port }! !
+	^ 'http://localhost:{1}/dog' format: { server port }! !
 
 !WebClientPlus class methodsFor: 'as yet unclassified' stamp: 'RMV 10/8/2024 18:29:51'!
 method: methodSymbol url: urlString
@@ -349,6 +345,10 @@ method: methodSymbol url: urlString headers: headerDict content: contentString
 		ifNotNil: [ client sendRequest: req content: contentString readStream size: contentString size ].
 	^res.
 ! !
+
+!WebServerPlus methodsFor: 'accessing' stamp: 'RMV 10/29/2024 14:01:32'!
+port
+	^ listenerSocket localPort! !
 
 !WebServerPlus methodsFor: 'accessing' stamp: 'RMV 10/29/2024 08:31:32'!
 staticFilePath
@@ -481,17 +481,6 @@ routeForMethod: methodSymbol path: pathString
 !WebServerPlus class methodsFor: 'as yet unclassified' stamp: 'RMV 10/9/2024 18:36:00'!
 jsonContentType
 	^ 'application/json; charset=utf-8'! !
-
-!WebServerPlus class methodsFor: 'as yet unclassified' stamp: 'RMV 10/28/2024 20:03:03'!
-openPort
-	"Answer an open port number"
-	| port socket |
-	
-	socket := Socket newTCP.
-	socket listenOn: 0. "gets an ephemeral port"
-	port := socket localPort.
-	socket close.
-	^port.! !
 
 !DogWebServer methodsFor: 'initialization' stamp: 'RMV 10/22/2024 19:35:53'!
 initialize
